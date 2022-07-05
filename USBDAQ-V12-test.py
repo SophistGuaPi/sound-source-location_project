@@ -8,6 +8,7 @@ from matplotlib import style
 freq=40*1000  #采样频率，单位赫兹
 fps = 10  #帧率，单位图/秒
 total_duration = 10 #总采样时长，单位秒
+total_duration=total_duration-1
 num = freq//fps #每张图点数，整数制
 pic_num = fps*total_duration #总生成图数
 print("每张图点数:"+str(num))
@@ -34,14 +35,16 @@ erro=DAQdll.ADSingleV12(1,0,1,byref(advalue))
 print(advalue)
 erro=DAQdll.ADContinuConfigV12(1,0,1,freq)
 plt.ion()
-T=[i for i in range(num)]
 for i in range(pic_num):
+    T = []
+    for j in range(num):
+        T.append(i/fps+j/num)
     if(DAQdll.GetAdBuffSizeV12()>=num):
         DAQdll.ReadAdBuffV12(byref(advalue),num)
         print(advalue)
         plt.clf()
         plt.ylim(0, 5)
-        plt.plot(T,advalue)   
+        plt.plot(T,advalue)
         plt.pause(0.000001)
         plt.ioff()
     time.sleep(1/fps)
