@@ -4,7 +4,7 @@ from scipy import fftpack
 
 freq = 40*1000 #参数输入模块
 
-def time_est(x,y):#时间延迟估计函数，x和y分别是采样列表，注意是列表
+def time_est(x,y):#时间延迟估计函数，x和y分别是采样数组，注意是数组
     sample_freq = fftpack.fftfreq(x.size,1/freq)
     xf = fft(x)
     yf = fft(y)
