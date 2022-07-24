@@ -6,6 +6,7 @@ import pyqtgraph as pg
 from pyqtgraph.widgets.RemoteGraphicsView import RemoteGraphicsView
 from pyqtgraph import examples
 
+micronum=3
 freq=40*1000  #采样频率，单位赫兹
 fps = 10  #帧率，单位图/秒
 total_duration = 10 #总采样时长，单位秒
@@ -36,18 +37,34 @@ app = pg.mkQApp("Plot Auto Range Example")
 win = pg.GraphicsLayoutWidget(show=True, title="Plot auto-range examples")
 win.resize(800,600)
 win.setWindowTitle('pyqtgraph example: PlotAutoRange')
-p2 = win.addPlot(title="Auto Pan Only")
+p0 = win.addPlot(title="Auto Pan Only")
+p0.setAutoPan(y=True)
+p1=win.addPlot(title="Auto Pan Only")
+p1.setAutoPan(y=True)
+p2=win.addPlot(title="Auto Pan Only")
 p2.setAutoPan(y=True)
-curve = p2.plot()
+curve0 = p0.plot()
+curve1=p1.plot()
+curve2=p2.plot()
 def update():
     print(DAQdll.GetAdBuffSizeV12())
     T=[]*num
-    if (DAQdll.GetAdBuffSizeV12() >= num):
-        value = []
-        DAQdll.ReadAdBuffV12(byref(advalue), num)
-        for i in range(len(advalue)):
-            value.append(advalue[i])
-        curve.setData(value)
+    if (DAQdll.GetAdBuffSizeV12() >= num*micronum):
+        value0=[]
+        value1=[]
+        value2=[]
+        DAQdll.ReadAdBuffV12(byref(advalue), num*micronum)
+        for i in range(3):
+            for j in range(num):
+                if i==0:
+                    value0.append(advalue[i][j])
+                if i==1:
+                    value1.append(advalue[i][j])
+                else:
+                    value2.append(advalue[i][j])
+        curve0.setData(value0)
+        curve1.setData(value1)
+        curve2.setData(value2)
 
 allvalue=[]*freq*(total_duration+1)
 T = []
@@ -58,10 +75,10 @@ timer.start(10)
 if __name__ == '__main__':
     DAQdll = WinDLL("./USBDAQ_DLL_V12X64.dll")
     erro = DAQdll.OpenUsbV12()
-    advalue = (c_float * int(num))()
+    advalue = (c_float * int(num) * micronum)()
     erro = DAQdll.ADSingleV12(1, 0, 1, byref(advalue))
     print(advalue)
-    erro = DAQdll.ADContinuConfigV12(1, 0, 1, freq)
+    erro = DAQdll.MADContinuConfigV12(1, 0, micronum-1, 1 , freq)
     pg.exec()
     erro = DAQdll.ADContinuStopV12()
     erro = DAQdll.CloseUsbV12()
