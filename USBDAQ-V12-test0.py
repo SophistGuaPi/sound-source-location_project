@@ -5,8 +5,11 @@ from pyqtgraph.Qt import QtCore,QtGui
 import pyqtgraph as pg
 from pyqtgraph.widgets.RemoteGraphicsView import RemoteGraphicsView
 from pyqtgraph import examples
+from scipy.fftpack import fft,ifft
+from scipy import fftpack
 
-micronum=3
+#参数输入
+micronum=3 
 freq=40*1000  #采样频率，单位赫兹
 fps = 10  #帧率，单位图/秒
 total_duration = 10 #总采样时长，单位秒
@@ -32,7 +35,7 @@ print("总图数："+str(pic_num))
 #调用函数采集通道1的电压，单端模式，量程默认正负10V
 #打印采集到的电压值
 
-
+#绘图设置初始化
 app = pg.mkQApp("Plot Auto Range Example")
 win = pg.GraphicsLayoutWidget(show=True, title="Plot auto-range examples")
 win.resize(800,600)
@@ -43,11 +46,31 @@ p1=win.addPlot(title="Auto Pan Only")
 p1.setAutoPan(y=True)
 p2=win.addPlot(title="Auto Pan Only")
 p2.setAutoPan(y=True)
+p3 = win.addPlot(title="Auto Pan Only")
+p3.setAutoPan(y=True)
 curve0 = p0.plot()
 curve1=p1.plot()
 curve2=p2.plot()
+win.nextRow()
+curve3 = p3.plot()
+
+#函数定义
+def time_est(x,y):#时间延迟估计函数，x和y分别是采样列表，注意是数组
+    sample_freq = fftpack.fftfreq(x.size,1/freq)
+    xf = fft(x)
+    yf = fft(y)
+    for i in range(len(yf)):
+        yf[i] = yf[i].conjugate() #取共扼运算
+    Rxy = []
+    for i in range(len(yf)):
+        a = xf[i]*yf[i]
+        Rxy.append(a)
+    Rxy = np.array(Rxy)
+    Rxy = ifft(Rxy)
+    tidelay = Rxy.argmax()
+    tidelay = tidelay/freq
+    return tidelay
 def update():
-    print(DAQdll.GetAdBuffSizeV12())
     T=[]*num
     if (DAQdll.GetAdBuffSizeV12() >= num*micronum):
         value0=[]
@@ -65,13 +88,24 @@ def update():
         curve0.setData(value0)
         curve1.setData(value1)
         curve2.setData(value2)
+        value01 = np.array(value0)
+        value11 = np.array(value1)
+        value21 = np.array(value2)
+        sample_freq = fftpack.fftfreq(value01.size,1/freq)
+        value0f = fft(value01)
+        curve3.setData(value0f)
+        t01 = time_est(value01,value11)
+        t12 = time_est(value11,value21)
+        print(t01,t11)
 
+#数据准备与初始化
 allvalue=[]*freq*(total_duration+1)
 T = []
 timer = QtCore.QTimer()
 timer.timeout.connect(update)
 timer.start(10)
 
+#打开采集卡，连续采集与关闭
 if __name__ == '__main__':
     DAQdll = WinDLL("./USBDAQ_DLL_V12X64.dll")
     erro = DAQdll.OpenUsbV12()
